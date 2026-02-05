@@ -189,7 +189,8 @@ class TestEventSchedulingEdgeCases:
 
         simulator.run_until(10.0)
 
-        assert fn.call_count >= 0
+        # First event executes even though stop was called earlier
+        assert fn.call_count == 1
 
     def test_multiple_generators_same_time(self):
         """Test multiple generators with same schedule."""
