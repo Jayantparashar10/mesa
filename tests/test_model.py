@@ -182,3 +182,47 @@ def test_agent_remove():
 
     model.remove_all_agents()
     assert len(model.agents) == 0
+
+
+def test_rng_with_generator():
+    """Test that passing a Generator to Model is reproducible.
+
+    This verifies the fix where Model(rng=np.random.default_rng(42))
+    was non-reproducible because it was re-wrapping existing Generators.
+    """
+    gen1 = np.random.default_rng(42)
+    gen2 = np.random.default_rng(42)
+
+    m1 = Model(rng=gen1)
+    m2 = Model(rng=gen2)
+
+    # Both should have the same derived seed
+    assert m1._seed == m2._seed
+
+    # Both should produce same random values
+    assert m1.random.random() == m2.random.random()
+    assert m1.rng.random() == m2.rng.random()
+
+
+def test_rng_integer_matches_seed():
+    """Test that rng=42 produces identical results to seed=42."""
+    m_seed = Model(seed=42)
+    m_rng = Model(rng=42)
+
+    assert m_seed._seed == 42
+    assert m_rng._seed == 42
+    assert m_seed.random.random() == m_rng.random.random()
+    assert m_seed.rng.random() == m_rng.rng.random()
+
+
+def test_reset_rng_with_generator():
+    """Test that reset_rng() properly handles Generator instances."""
+    model1 = Model(rng=42)
+    model2 = Model(rng=42)
+
+    model1.reset_rng(rng=np.random.default_rng(99))
+    model2.reset_rng(rng=np.random.default_rng(99))
+
+    # Both should produce same sequence after reset
+    for _ in range(3):
+        assert model1.rng.random() == model2.rng.random()
