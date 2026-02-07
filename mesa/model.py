@@ -132,13 +132,18 @@ class Model[A: Agent, S: Scenario](HasObservables):
         if (seed is not None) and (rng is not None):
             raise ValueError("you have to pass either rng or seed, not both")
         elif seed is None:
-            self.rng: np.random.Generator = np.random.default_rng(rng)
+            # If rng is already a Generator, use it directly; otherwise create one
+            if isinstance(rng, np.random.Generator):
+                self.rng: np.random.Generator = rng
+            else:
+                self.rng: np.random.Generator = np.random.default_rng(rng)
+
             self._rng = (
                 self.rng.bit_generator.state
             )  # this allows for reproducing the rng
 
-            # If rng is an integer, use it directly.
-            # Otherwise (None, Generator, etc.), generate a new integer seed.
+            # If rng is an integer, use it directly for stdlib random.
+            # Otherwise (None, Generator, etc.), generate a new integer seed from the Generator.
             if isinstance(rng, (int, np.integer)):
                 seed = rng
                 self.random = random.Random(seed)
@@ -373,7 +378,11 @@ class Model[A: Agent, S: Scenario](HasObservables):
             bg.state = self._rng
             self.rng = np.random.Generator(bg)
         else:
-            self.rng = np.random.default_rng(rng)
+            # If rng is already a Generator, use it directly; otherwise create one
+            if isinstance(rng, np.random.Generator):
+                self.rng = rng
+            else:
+                self.rng = np.random.default_rng(rng)
             self._rng = self.rng.bit_generator.state
 
     def remove_all_agents(self):
